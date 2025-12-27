@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online oyun oyna</title>
+
+<style>
+body{
+ font-family:Arial;
+ background:linear-gradient(135deg,#667eea,#764ba2);
+ color:white;
+ text-align:center;
+ margin:0;
+}
+.sayfa{display:none;padding:15px}
+.aktif{display:block}
+.kart{
+ background:rgba(255,255,255,0.2);
+ padding:20px;
+ margin:15px auto;
+ max-width:420px;
+ border-radius:18px;
+}
+button{
+ width:100%;
+ max-width:260px;
+ padding:15px;
+ margin:8px auto;
+ border-radius:30px;
+ border:none;
+ font-size:16px;
+ background:#ffcc00;
+ cursor:pointer;
+}
+input{
+ padding:12px;
+ border-radius:20px;
+ border:none;
+ width:80%;
+ margin-bottom:10px;
+}
+.liste{text-align:left;max-width:420px;margin:auto}
+
+/* 🔥 SKOR ANİMASYONU */
+#skor.anim {
+ animation: pop 0.6s ease;
+ color:#ffeb3b;
+}
+@keyframes pop{
+ 0%{transform:scale(1)}
+ 50%{transform:scale(1.4)}
+ 100%{transform:scale(1)}
+}
+</style>
+</head>
+<body>
+
+<!-- ANA -->
+<div id="ana" class="sayfa aktif">
+<h1>🎮 Oyun Sitesi</h1>
+<div class="kart">
+<input id="ad" placeholder="Adını yaz">
+<button onclick="oyun()">Oyunlara Gir</button>
+</div>
+</div>
+
+<!-- OYUN -->
+<div id="oyun" class="sayfa">
+<h2>🏆 Skorun: <span id="skor">0</span></h2>
+
+<div class="kart">
+<button onclick="tahmin()">🎯 Sayı Tahmin</button>
+<button onclick="yaziTura()">🪙 Yazı Tura</button>
+<button onclick="tkm()">✊✋✌️ Taş Kağıt Makas</button>
+</div>
+
+<div class="kart">
+<button onclick="skorKaydet()">💾 Skoru Kaydet</button>
+<button onclick="lider()">🏆 Skor Tablosu</button>
+<button onclick="ana()">⬅ Geri</button>
+</div>
+</div>
+
+<!-- LİDER -->
+<div id="lider" class="sayfa">
+<h2>🏆 Canlı Skor Tablosu</h2>
+<div id="liste" class="liste"></div>
+<button onclick="oyun()">⬅ Oyunlara Dön</button>
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+// 🔴 BURAYI FIREBASE'DEN DOLDUR
+const firebaseConfig = {
+ apiKey: "AIzaSyDCR5RNvFgQtIGLG2SrULhA_CvO965YlQE",
+  authDomain: "mesaj-2bc45.firebaseapp.com",
+   projectId: "mesaj-2bc45"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// SAYFA
+function goster(id){
+ document.querySelectorAll('.sayfa').forEach(s=>s.classList.remove('aktif'));
+ document.getElementById(id).classList.add('aktif');
+}
+function ana(){goster("ana")}
+function oyun(){
+ if(ad.value.trim()==""){alert("Adını yaz");return;}
+ goster("oyun"); skorYaz();
+}
+function lider(){
+ goster("lider");
+ canlıTablo();
+}
+
+// 🔢 SKOR + ANİMASYON
+let skor=0;
+let sonKayit=0;
+
+function skorYaz(){
+ skorEl.innerText=skor;
+}
+
+const skorEl=document.getElementById("skor");
+
+function animasyonluArtis(miktar){
+ let hedef=skor+miktar;
+ let gecici=skor;
+ let adim=setInterval(()=>{
+   gecici++;
+   skorEl.innerText=gecici;
+   if(gecici>=hedef){
+     clearInterval(adim);
+     skor=hedef;
+     skorEl.classList.add("anim");
+     setTimeout(()=>skorEl.classList.remove("anim"),600);
+   }
+ },40);
+}
+
+function kazan(){
+ if(skor % 10 !== 0) return; // hile engel
+ animasyonluArtis(10);
+}
+
+// 🎮 OYUNLAR
+function tahmin(){
+ let s=Math.floor(Math.random()*5)+1;
+ let t=prompt("1-5 arası:");
+ if(t==s){alert("🎉 Kazandın"); kazan();}
+ else alert("❌ Yanlış: "+s);
+}
+
+function yaziTura(){
+ let r=Math.random()<0.5?"Yazı":"Tura";
+ let t=prompt("Yazı mı Tura mı?");
+ if(t && t.toLowerCase()==r.toLowerCase()){alert("🎉 Kazandın"); kazan();}
+ else alert("Sonuç: "+r);
+}
+
+function tkm(){
+ let d=["Taş","Kağıt","Makas"];
+ let pc=d[Math.floor(Math.random()*3)];
+ let o=prompt("Taş / Kağıt / Makas");
+ if(!o)return;
+ o=o.charAt(0).toUpperCase()+o.slice(1).toLowerCase();
+ if(o===pc) alert("🤝 Berabere");
+ else if(
+  (o==="Taş"&&pc==="Makas")||
+  (o==="Kağıt"&&pc==="Taş")||
+  (o==="Makas"&&pc==="Kağıt")
+ ){alert("🎉 Kazandın"); kazan();}
+ else alert("😢 Kaybettin: "+pc);
+}
+
+// 💾 SKOR KAYIT (HİLE ENGEL)
+function skorKaydet(){
+ let now=Date.now();
+ if(now-sonKayit<10000){alert("Biraz bekle");return;}
+ if(skor<=0 || skor>1000){alert("Geçersiz skor");return;}
+ sonKayit=now;
+
+ db.collection("skorlar").add({
+  ad:ad.value.trim(),
+  skor:skor,
+  zaman:firebase.firestore.FieldValue.serverTimestamp()
+ });
+ alert("Skor kaydedildi");
+}
+
+// 🏆 CANLI TABLO
+let unsubscribe=null;
+function canlıTablo(){
+ if(unsubscribe) unsubscribe();
+ unsubscribe=db.collection("skorlar")
+ .orderBy("skor","desc")
+ .limit(10)
+ .onSnapshot(s=>{
+  liste.innerHTML="";
+  let i=1;
+  s.forEach(d=>{
+   let x=d.data();
+   liste.innerHTML+=`<p>${i}. <b>${x.ad}</b> - ${x.skor}</p>`;
+   i++;
+  });
+ });
+}
+</script>
+
+</body>
+</html>
